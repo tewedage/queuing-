@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:ibm-mq="http://www.mulesoft.org/schema/mule/ibm-mq"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/ibm-mq http://www.mulesoft.org/schema/mule/ibm-mq/current/mule-ibm-mq.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="63ae4d43-2171-4070-ae31-0085e607ca92" >
+		<http:listener-connection host="0.0.0.0" port="8099" />
+	</http:listener-config>
+	<ibm-mq:config name="IBM_MQ_Config" doc:name="IBM MQ Config" doc:id="c21f5266-a90c-4422-844f-60790fb15e73" >
+		<ibm-mq:connection specification="JMS_1_1" >
+			<ibm-mq:connection-mode >
+				<ibm-mq:client host="localhost" queueManager="PUBQM" />
+			</ibm-mq:connection-mode>
+		</ibm-mq:connection>
+	</ibm-mq:config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="a1c83e81-f36c-409e-95a5-4e96ae752d3f" >
+		<jms:active-mq-connection username="admin" password="admin">
+			<jms:factory-configuration brokerUrl="tcp://localhost:61616" />
+		</jms:active-mq-connection>
+	</jms:config>
+	<ibm-mq:config name="IBM_MQ_Config1" doc:name="IBM MQ Config" doc:id="14d56c0c-72bf-46d5-9d54-41698e01f3ef" >
+		<ibm-mq:connection specification="JMS_1_1" >
+			<ibm-mq:connection-mode >
+				<ibm-mq:client host="localhost" queueManager="PUBQM" />
+			</ibm-mq:connection-mode>
+		</ibm-mq:connection>
+	</ibm-mq:config>
+	<flow name="mqFlow" doc:id="6e4db315-e1fe-4c0c-bad9-ccaff4e370ea" >
+		<http:listener doc:name="Listener" doc:id="4a9555af-4fdb-4fb9-83c0-44ef264241f8" config-ref="HTTP_Listener_config" path="/ibm"/>
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="d0ed95c0-9061-4d90-ae2e-c488fa9e211c" variableName="inputmsg"/>
+		<ee:transform doc:name="Transform Message" doc:id="91a0682b-8d71-499b-95d6-01aa8f1e3f67" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ibm-mq:publish doc:name="Publish" doc:id="07db6444-4a30-4b68-a045-2c74c3d7da5c" config-ref="IBM_MQ_Config" destination="Q2"/>
+		<logger level="INFO" doc:name="Logger" doc:id="063bd564-30f4-4403-bf36-a56171e58f1b" message="Message sent to IBMMQ"/>
+	</flow>
+	<flow name="mqFlow1" doc:id="62c8afbe-e569-4f11-9611-df0766f8b32a" >
+		<ibm-mq:listener doc:name="On New Message" doc:id="d921bad5-d351-41de-b5cc-1fbbdc9f62ca" config-ref="IBM_MQ_Config1" destination="Q2">
+			<ibm-mq:consumer-type >
+				<ibm-mq:queue-consumer />
+			</ibm-mq:consumer-type>
+		</ibm-mq:listener>
+		<jms:publish doc:name="Publish" doc:id="6d631e93-d3a7-4d24-949a-27a5fc7c9d0d" config-ref="JMS_Config" destination="Abadi">
+		</jms:publish>
+	</flow>
+</mule>
